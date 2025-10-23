@@ -368,7 +368,7 @@
         import { 
             getAuth, 
             signInAnonymously, 
-            signInWithCustomToken, 
+            // Removed signInWithCustomToken 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
@@ -383,27 +383,44 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE INITIALIZATION ---
-        // Get config from global variable (provided by Canvas environment)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_FALLBACK_API_KEY", authDomain: "...", projectId: "..." }; // Replace with your actual fallback if needed
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // !!! IMPORTANT: PASTE YOUR FIREBASE CONFIGURATION HERE !!!
+        const firebaseConfig = {
+  apiKey: "AIzaSyCDZ2Z-8FLIm4Vy1oFGQ5fVhYS6ZwoHQe8",
+  authDomain: "car-comparison-tool.firebaseapp.com",
+  projectId: "car-comparison-tool",
+  storageBucket: "car-comparison-tool.firebasestorage.app",
+  messagingSenderId: "614493627091",
+  appId: "1:614493627091:web:d7cd9952e7a67dd0642a26"
+};
+        // Remove __app_id dependency
+        // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; 
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        setLogLevel('debug'); // Enable detailed Firestore logging
+        let app;
+        let db;
+        let auth;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('debug'); // Enable detailed Firestore logging
+             console.log("Firebase initialized successfully.");
+        } catch (error) {
+             console.error("Error initializing Firebase:", error);
+             // Display error to the user
+             document.getElementById('car-table-body').innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Error initializing Firebase. Check your configuration.</td></tr>`;
+             document.getElementById('user-id-display').textContent = 'Error initializing Firebase.';
+        }
+
 
         let userId = null; // Will hold the authenticated user ID
         let carsCollectionRef = null; // Will hold the reference to the user's car collection
         let unsubscribeCars = null; // Function to detach the Firestore listener
 
-        // --- LOCALSTORAGE FUNCTIONS (REMOVED) ---
-        // Removed saveCarsToLocalStorage and loadCarsFromLocalStorage
-
         // --- DATA ---
         let carData = []; // Start with an empty array, will be populated by Firestore
 
-        // --- FEATURE DEFINITIONS ---
+        // --- FEATURE DEFINITIONS (Unchanged) ---
         const featureDefinitions = [
             { id: 'physicalAC', label: 'Physical A/C Buttons' },
             { id: 'wirelessCarPlay', label: 'Wireless Apple CarPlay' },
@@ -413,7 +430,7 @@
             { id: 'sunroof', label: 'Sunroof' }
         ];
 
-        // --- STATE ---
+        // --- STATE (Unchanged) ---
         const state = {
             cars: [],
             sortBy: 'price',
@@ -426,7 +443,7 @@
             currentCarId: null 
         };
 
-        // --- ELEMENTS ---
+        // --- ELEMENTS (Unchanged) ---
         const tableBody = document.getElementById('car-table-body');
         const modal = document.getElementById('car-modal');
         const modalContainer = document.getElementById('modal-container');
@@ -460,16 +477,18 @@
         const dropZoneText = document.getElementById('drop-zone-text');
         const imageFileInput = document.getElementById('image-file-input');
         const addImageUrlInput = document.getElementById('add-imageUrl');
-        const userIdDisplay = document.getElementById('user-id-display'); // Element to display user ID
+        const userIdDisplay = document.getElementById('user-id-display');
 
-        // --- MODAL FUNCTIONS (Details - Unchanged) ---
+        // --- MODAL FUNCTIONS (Details - Unchanged, except added safety checks) ---
         function getFeatureDetailHTML(label, status) {
+             // Add a default if status is missing
+             const safeStatus = status || { available: false, note: 'Data missing' };
             let icon = '';
             let textColor = 'text-gray-800';
 
-            if (status.available === true) {
+            if (safeStatus.available === true) {
                 icon = '<i class="ph-duotone ph-check-circle text-2xl text-green-500"></i>';
-            } else if (status.available === 'trim') {
+            } else if (safeStatus.available === 'trim') {
                 icon = '<i class="ph-duotone ph-warning-circle text-2xl text-yellow-500"></i>';
                 textColor = 'text-gray-600';
             } else {
@@ -482,19 +501,19 @@
                     ${icon}
                     <div>
                         <span class="font-medium ${textColor}">${label}</span>
-                        <span class="block text-xs text-gray-500">${status.note || (status.available ? 'Standard' : 'Not available')}</span>
+                        <span class="block text-xs text-gray-500">${safeStatus.note || (safeStatus.available ? 'Standard' : 'Not available')}</span>
                     </div>
                 </li>
             `;
         }
         
         function populateModal(car) {
-             if (!car) { // Add safety check
+             if (!car) { 
                 console.error("Attempted to populate modal with undefined car");
                 closeModal();
                 return;
             }
-            state.currentCarId = car.id; // Use Firestore doc ID
+            state.currentCarId = car.id; 
             document.getElementById('modal-title').textContent = `${car.make} ${car.model}`;
             document.getElementById('modal-image').src = car.imageUrl;
             document.getElementById('modal-image').alt = `${car.make} ${car.model}`;
@@ -503,7 +522,7 @@
             powertrainBadge.textContent = car.powertrain;
             powertrainBadge.className = `inline-block text-sm font-medium mt-2 px-3 py-1 rounded-full ${car.powertrain === 'EV' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`;
 
-            document.getElementById('modal-price').textContent = `€${car.price.toLocaleString('nl-NL')}`;
+            document.getElementById('modal-price').textContent = `€${(car.price || 0).toLocaleString('nl-NL')}`; // Default price to 0 if missing
             document.getElementById('modal-lease').textContent = car.lease ? `~€${car.lease}/m` : 'N/A';
             document.getElementById('modal-range').textContent = car.range ? `${car.range} km` : 'N/A (Hybrid)';
             document.getElementById('modal-note').textContent = car.note;
@@ -512,7 +531,6 @@
             const featuresList = document.getElementById('modal-features-list');
             featuresList.innerHTML = '';
             featureDefinitions.forEach(feature => {
-                 // Safety check for potentially missing feature data in Firestore
                 const featureData = car.features && car.features[feature.id] 
                     ? car.features[feature.id] 
                     : { available: false, note: 'Data missing' };
@@ -521,18 +539,16 @@
         }
 
         function openModal(carId) {
-             // Find car in the local carData array (managed by onSnapshot)
             const car = carData.find(c => c.id === carId); 
             if (!car) {
                  console.error(`Car with ID ${carId} not found in local data.`);
                  return;
             }
 
-            const carIndex = state.cars.findIndex(c => c.id === carId); // Find index in filtered list
+            const carIndex = state.cars.findIndex(c => c.id === carId); 
             if (carIndex === -1) {
                  console.warn(`Car with ID ${carId} found in global data but not in current filtered view.`);
-                 // Decide how to handle: maybe open anyway, or don't. Let's open it.
-                 state.currentCarIndex = carData.findIndex(c => c.id === carId); // Find index in global list instead
+                 state.currentCarIndex = carData.findIndex(c => c.id === carId); 
             } else {
                 state.currentCarIndex = carIndex;
             }
@@ -555,24 +571,29 @@
         }
 
         function showNextPrevCar(direction) {
-            if (state.cars.length === 0) return; // Prevent errors if filtered list is empty
+            if (!state.cars || state.cars.length === 0) return; 
 
             let newIndex = state.currentCarIndex + direction;
             if (newIndex < 0) newIndex = state.cars.length - 1;
             if (newIndex >= state.cars.length) newIndex = 0;
             
-            const newCarId = state.cars[newIndex].id;
-            const car = carData.find(c => c.id === newCarId); // Find actual car from global list
-            if (car) {
-                state.currentCarIndex = newIndex; 
-                populateModal(car);
+            // Check if state.cars[newIndex] exists before accessing its id
+             if (state.cars[newIndex]) {
+                 const newCarId = state.cars[newIndex].id;
+                 const car = carData.find(c => c.id === newCarId); 
+                 if (car) {
+                     state.currentCarIndex = newIndex; 
+                     populateModal(car);
+                 } else {
+                     console.error("Could not find next/prev car in global data:", newCarId);
+                 }
             } else {
-                 console.error("Could not find next/prev car in global data:", newCarId);
+                console.error("Error navigating: Invalid index", newIndex);
             }
         }
 
-        // --- MODAL FUNCTIONS (Add/Edit Car - Modified for Firestore) ---
 
+        // --- MODAL FUNCTIONS (Add/Edit Car - Modified for Firestore - Unchanged logic) ---
         function openAddCarModal() {
             addCarForm.reset();
             addModalTitle.textContent = "Add a New Car";
@@ -593,24 +614,26 @@
         }
         
         function openEditCarModal(car) {
+             if (!car) {
+                 console.error("Attempted to open edit modal with undefined car");
+                 return;
+             }
             addCarForm.reset();
             addModalTitle.textContent = `Edit ${car.make} ${car.model}`;
             addCarSubmitBtn.textContent = "Update Car";
-            addCarForm.dataset.editingId = car.id; // Use Firestore ID
+            addCarForm.dataset.editingId = car.id; 
             findCarError.classList.add('hidden');
 
-            // Populate form
-            document.getElementById('add-make').value = car.make;
-            document.getElementById('add-model').value = car.model;
-            document.getElementById('add-powertrain').value = car.powertrain;
-            document.getElementById('add-price').value = car.price;
+            document.getElementById('add-make').value = car.make || '';
+            document.getElementById('add-model').value = car.model || '';
+            document.getElementById('add-powertrain').value = car.powertrain || 'EV';
+            document.getElementById('add-price').value = car.price || '';
             document.getElementById('add-lease').value = car.lease || '';
             document.getElementById('add-range').value = car.range || '';
-            document.getElementById('add-link').value = car.link;
-            document.getElementById('add-imageUrl').value = car.imageUrl;
-            document.getElementById('add-note').value = car.note;
+            document.getElementById('add-link').value = car.link || '';
+            document.getElementById('add-imageUrl').value = car.imageUrl || '';
+            document.getElementById('add-note').value = car.note || '';
 
-            // Populate image drop zone preview
             if (car.imageUrl) {
                 imagePreview.src = car.imageUrl; 
                 imagePreview.classList.remove('hidden');
@@ -622,22 +645,25 @@
             }
             imageDropZone.classList.remove('drop-zone-active');
 
-            // Populate features
             featureDefinitions.forEach(feature => {
                 const status = (car.features && car.features[feature.id]) 
                                 ? car.features[feature.id] 
-                                : { available: false, note: '' }; // Default if missing
+                                : { available: false, note: '' }; 
                 const select = document.getElementById(`add-${feature.id}`);
                 const noteInput = document.getElementById(`add-note-${feature.id}`);
                 
-                if (status.available === true) {
-                    select.value = 'true';
-                } else if (status.available === 'trim') {
-                    select.value = 'trim';
+                if (select && noteInput) { // Check elements exist
+                    if (status.available === true) {
+                        select.value = 'true';
+                    } else if (status.available === 'trim') {
+                        select.value = 'trim';
+                    } else {
+                        select.value = 'false';
+                    }
+                    noteInput.value = status.note || '';
                 } else {
-                    select.value = 'false';
+                    console.warn(`Form elements for feature ${feature.id} not found.`);
                 }
-                noteInput.value = status.note || '';
             });
 
             addCarModal.classList.remove('hidden');
@@ -672,29 +698,27 @@
             });
         }
 
-        // Modified submit handler to use Firestore
         async function handleAddCarSubmit(e) {
             e.preventDefault();
             if (!carsCollectionRef) {
-                console.error("Firestore connection not ready.");
-                // Optionally show a user-facing error message
+                console.error("Firestore connection not ready. Cannot save car.");
+                alert("Error: Database connection not ready. Please try again later."); // User feedback
                 return;
             }
 
-            const editingId = addCarForm.dataset.editingId; // Firestore ID is string
+            const editingId = addCarForm.dataset.editingId; 
             const make = document.getElementById('add-make').value; 
             const imageUrlValue = document.getElementById('add-imageUrl').value; 
             
-            // Create the car object *without* the ID field for adding
              const carDataObj = {
-                make: make, 
-                model: document.getElementById('add-model').value,
-                powertrain: document.getElementById('add-powertrain').value,
+                make: make || 'Unknown Make', // Add defaults
+                model: document.getElementById('add-model').value || 'Unknown Model',
+                powertrain: document.getElementById('add-powertrain').value || 'EV',
                 price: parseInt(document.getElementById('add-price').value, 10) || 0,
                 lease: parseInt(document.getElementById('add-lease').value, 10) || null,
                 range: parseInt(document.getElementById('add-range').value, 10) || null,
                 link: document.getElementById('add-link').value || '#',
-                imageUrl: imageUrlValue || `https://placehold.co/600x400/9ca3af/E2E8F0?text=${make}`, 
+                imageUrl: imageUrlValue || `https://placehold.co/600x400/9ca3af/E2E8F0?text=${make || 'Car'}`, 
                 note: document.getElementById('add-note').value || '',
                 features: {}
             };
@@ -702,46 +726,46 @@
 
             document.querySelectorAll('.add-feature-select').forEach(select => {
                 const featureId = select.dataset.featureId;
-                const value = select.value;
-                const note = document.getElementById(`add-note-${featureId}`).value;
-                
-                let available = false;
-                if (value === 'true') available = true;
-                if (value === 'trim') available = 'trim';
+                 if (featureId) { // Check if featureId exists
+                     const value = select.value;
+                     const noteInput = document.getElementById(`add-note-${featureId}`);
+                     const note = noteInput ? noteInput.value : ''; // Check if noteInput exists
 
-                carDataObj.features[featureId] = {
-                    available: available,
-                    note: note || (available === 'trim' ? 'Available on higher trim' : (available ? 'Standard' : 'Not available'))
-                };
+                    let available = false;
+                    if (value === 'true') available = true;
+                    if (value === 'trim') available = 'trim';
+
+                    carDataObj.features[featureId] = {
+                        available: available,
+                        note: note || (available === 'trim' ? 'Available on higher trim' : (available ? 'Standard' : 'Not available'))
+                    };
+                } else {
+                    console.warn("Missing featureId on select element:", select);
+                }
             });
             
-            addCarSubmitBtn.disabled = true; // Disable button during operation
+            addCarSubmitBtn.disabled = true; 
 
             try {
                 if (editingId) {
-                    // Update existing car in Firestore
                     const carDocRef = doc(carsCollectionRef, editingId);
-                    await setDoc(carDocRef, carDataObj, { merge: true }); // Use setDoc with merge to update or overwrite
+                    await setDoc(carDocRef, carDataObj, { merge: true }); 
                     console.log("Car updated successfully:", editingId);
                 } else {
-                    // Add new car to Firestore
                     const docRef = await addDoc(carsCollectionRef, carDataObj);
                     console.log("Car added successfully with ID:", docRef.id);
                 }
-                 // No need to manually update local carData here, onSnapshot will handle it.
-                // applyFiltersAndSort(); // onSnapshot triggers this
                 closeAddCarModal();
 
             } catch (error) {
                 console.error("Error saving car to Firestore:", error);
-                 // TODO: Show user-friendly error message
+                 alert(`Error saving car: ${error.message}`); // User feedback
             } finally {
-                 addCarSubmitBtn.disabled = false; // Re-enable button
+                 addCarSubmitBtn.disabled = false; 
             }
         }
         
-        // --- MODAL FUNCTIONS (Delete Confirm - Modified for Firestore) ---
-
+        // --- MODAL FUNCTIONS (Delete Confirm - Modified for Firestore - Unchanged logic) ---
         function openDeleteConfirmModal() {
             deleteConfirmModal.classList.remove('hidden');
             setTimeout(() => {
@@ -758,36 +782,33 @@
             }, 300);
         }
         
-        // Modified delete handler to use Firestore
         async function handleDeleteCar() {
             if (state.currentCarId && carsCollectionRef) {
                 const carDocRef = doc(carsCollectionRef, state.currentCarId);
-                confirmDeleteBtn.disabled = true; // Disable button
+                confirmDeleteBtn.disabled = true; 
                 
                 try {
                     await deleteDoc(carDocRef);
                     console.log("Car deleted successfully:", state.currentCarId);
-                    state.currentCarId = null; // Clear selected ID
-                     // No need to manually update local carData here, onSnapshot will handle it.
+                    state.currentCarId = null; 
                     closeModal();
                     closeDeleteConfirmModal();
-                    // applyFiltersAndSort(); // onSnapshot triggers this
 
                 } catch (error) {
                      console.error("Error deleting car from Firestore:", error);
-                     // TODO: Show user-friendly error message
+                      alert(`Error deleting car: ${error.message}`); // User feedback
                 } finally {
-                     confirmDeleteBtn.disabled = false; // Re-enable button
+                     confirmDeleteBtn.disabled = false; 
                 }
             } else {
                  console.error("Cannot delete: No car selected or Firestore not ready.");
+                 alert("Could not delete car. Please select a car first."); // User feedback
             }
         }
 
         // --- TABLE & FILTER FUNCTIONS (Unchanged, but rely on updated carData) ---
 
         function renderFeatureIcon(status) {
-             // Add default status if missing
             const safeStatus = status || { available: false, note: 'Data missing' };
             let icon = 'ph-x-circle text-red-500';
             let title = safeStatus.note || 'Not available';
@@ -802,36 +823,60 @@
             return `<i class="ph-duotone ${icon} text-2xl" title="${title}"></i>`;
         }
 
-
         function renderTable() {
             tableBody.innerHTML = '';
-            if (state.cars.length === 0) {
+            // Add check for Firebase initialization state
+             if (!auth || !db) {
+                 tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Firebase not initialized. Check configuration.</td></tr>`;
+                 return;
+             }
+             if (!userId) {
+                tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-gray-500">Authenticating...</td></tr>`;
+                return;
+            }
+             // Now check the actual data length
+            if (!carData || carData.length === 0) { // Check carData itself
                  tableBody.innerHTML = `
                     <tr>
                         <td colspan="12" class="px-6 py-12 text-center text-gray-500">
-                             ${userId ? 'No cars found. Add some!' : 'Loading cars...'}
+                            No cars found. Add some!
                         </td>
                     </tr>
                  `;
                  return;
             }
+             // Ensure state.cars is also updated before rendering
+             if (state.cars.length === 0) {
+                 tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="px-6 py-12 text-center text-gray-500">
+                            No cars match the current filters.
+                        </td>
+                    </tr>
+                 `;
+                 return;
+             }
 
             state.cars.forEach(car => {
+                 if (!car || !car.id) { // Add check for valid car object
+                     console.warn("Skipping invalid car data in renderTable:", car);
+                     return;
+                 }
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 cursor-pointer transition-colors';
-                tr.dataset.carId = car.id; // Use Firestore document ID
+                tr.dataset.carId = car.id; 
                 
                 tr.innerHTML = `
                     <td class="px-4 py-3 whitespace-nowrap">
-                        <img src="${car.imageUrl}" alt="${car.model}" class="w-24 h-16 object-cover rounded-md shadow-md" onerror="this.src='https://placehold.co/200x150/9ca3af/E2E8F0?text=No+Image'">
+                        <img src="${car.imageUrl || 'https://placehold.co/200x150/9ca3af/E2E8F0?text=No+Image'}" alt="${car.model || 'Car'}" class="w-24 h-16 object-cover rounded-md shadow-md" onerror="this.src='https://placehold.co/200x150/9ca3af/E2E8F0?text=No+Image'">
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
-                        <div class="text-sm font-semibold text-gray-900">${car.make}</div>
-                        <div class="text-sm text-gray-500">${car.model}</div>
+                        <div class="text-sm font-semibold text-gray-900">${car.make || 'N/A'}</div>
+                        <div class="text-sm text-gray-500">${car.model || 'N/A'}</div>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${car.powertrain === 'EV' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                            ${car.powertrain}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${car.powertrain === 'EV' ? 'bg-green-100 text-green-800' : (car.powertrain === 'Hybrid' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')}">
+                            ${car.powertrain || 'N/A'}
                         </span>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap">
@@ -847,7 +892,7 @@
                     <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.hud)}</td>
                     <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.sunroof)}</td>
                     <td class="px-4 py-3 text-center">
-                        <a href="${car.link}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600" onclick="(e) => e.stopPropagation()">
+                        <a href="${car.link || '#'}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600" onclick="(e) => e.stopPropagation()">
                             <i class="ph-duotone ph-arrow-square-out text-2xl"></i>
                         </a>
                     </td>
@@ -856,6 +901,7 @@
             });
         }
 
+
         function updateSortIcons() {
             sortableHeaders.forEach(header => {
                 const icon = header.querySelector('.sort-icon');
@@ -863,18 +909,18 @@
                 
                 if (header.dataset.sort === state.sortBy) {
                     icon.classList.add('active');
-                    icon.className = icon.className.replace('ph-arrows-vertical', state.sortOrder === 'asc' ? 'ph-sort-ascending' : 'ph-sort-descending');
-                    icon.className = icon.className.replace(state.sortOrder === 'asc' ? 'ph-sort-descending' : 'ph-sort-ascending', state.sortOrder === 'asc' ? 'ph-sort-ascending' : 'ph-sort-descending');
+                    icon.className = icon.className.replace(/ph-arrows-vertical|ph-sort-ascending|ph-sort-descending/, state.sortOrder === 'asc' ? 'ph-sort-ascending' : 'ph-sort-descending');
                 } else {
                     icon.classList.remove('active');
-                    icon.className = icon.className.replace(/ph-sort-(ascending|descending)/, 'ph-arrows-vertical');
+                     icon.className = icon.className.replace(/ph-sort-ascending|ph-sort-descending/, 'ph-arrows-vertical');
                 }
             });
         }
         
         function getSortValue(car, sortKey) {
+             if (!car) return null; // Safety check
             if (featureDefinitions.map(f => f.id).includes(sortKey)) {
-                 const feature = car.features ? car.features[sortKey] : null; // Safety check
+                 const feature = car.features ? car.features[sortKey] : null; 
                 if (!feature) return 1;
                 if (feature.available === true) return 3;
                 if (feature.available === 'trim') return 2;
@@ -883,53 +929,66 @@
             if (sortKey === 'price' || sortKey === 'range') {
                 return car[sortKey] || 0; 
             }
-             // Ensure make and model are treated as strings for sorting
             if (sortKey === 'model') {
                  return `${car.make || ''} ${car.model || ''}`.toLowerCase();
             }
-            return (car[sortKey] || '').toString().toLowerCase(); // Default string sort
+            return (car[sortKey] || '').toString().toLowerCase(); 
         }
 
-
         function applyFiltersAndSort() {
-            // Use the global carData (populated by Firestore) as the source
+             if (!Array.isArray(carData)) { // Ensure carData is an array
+                 console.error("carData is not an array:", carData);
+                 carData = []; // Reset to empty array if invalid
+             }
             let filteredCars = [...carData]; 
 
+            // Apply filters
             if (state.filters.powertrain !== 'all') {
-                filteredCars = filteredCars.filter(car => car.powertrain === state.filters.powertrain);
+                filteredCars = filteredCars.filter(car => car && car.powertrain === state.filters.powertrain);
             }
             if (state.filters.price !== 'all') {
                 const maxPrice = parseInt(state.filters.price, 10);
-                filteredCars = filteredCars.filter(car => car.price <= maxPrice);
+                filteredCars = filteredCars.filter(car => car && car.price <= maxPrice);
             }
             if (state.filters.features.length > 0) {
                 filteredCars = filteredCars.filter(car => {
+                     if (!car || !car.features) return false; // Safety check
                     return state.filters.features.every(featureKey => {
-                        const feature = car.features ? car.features[featureKey] : null; // Safety check
+                        const feature = car.features[featureKey];
                         return feature && feature.available; 
                     });
                 });
             }
 
+            // Apply sorting
             filteredCars.sort((a, b) => {
+                 // Handle cases where a or b might be null/undefined briefly during updates
+                 if (!a && !b) return 0;
+                 if (!a) return 1; // Put nulls/undefined last
+                 if (!b) return -1; // Put nulls/undefined last
+
                 let valA = getSortValue(a, state.sortBy);
                 let valB = getSortValue(b, state.sortBy);
+                 
+                 // Handle null sort values if getSortValue returns null
+                 if (valA === null && valB === null) return 0;
+                 if (valA === null) return 1 * (state.sortOrder === 'asc' ? 1 : -1);
+                 if (valB === null) return -1 * (state.sortOrder === 'asc' ? 1 : -1);
+
 
                 let modifier = state.sortOrder === 'asc' ? 1 : -1;
                 
-                 // Handle string sorting specifically
                 if (typeof valA === 'string' && typeof valB === 'string') {
                     return valA.localeCompare(valB) * modifier;
                 }
 
-                // Handle numeric sorting (including features which return numbers)
                 if (valA < valB) return -1 * modifier;
                 if (valA > valB) return 1 * modifier;
                 return 0;
             });
 
             state.cars = filteredCars; 
-            renderTable();
+            renderTable(); // Render the filtered and sorted data
             updateSortIcons();
         }
 
@@ -965,37 +1024,59 @@
             const userQuery = `Find the specifications for the car: ${make} ${model} for the Netherlands market. Get the starting price in Euros, WLTP range in km (if electric), and the availability of these specific features: Physical A/C controls, Wireless Apple CarPlay, Wireless Phone Charging, a separate Driver Display, Heads-Up Display (HUD), and Sunroof. For each feature, state if it's standard ('true'), not available ('false'), or available on a higher trim ('trim') and add a brief note.`;
 
             try {
-                const response = await fetch('/.netlify/functions/gemini-proxy', {
+                // Check if the Netlify function path exists (basic check)
+                 if (typeof fetch === 'undefined' || !window.location.origin) {
+                     throw new Error("Fetch API or window origin not available. Cannot call Netlify function.");
+                 }
+                const proxyUrl = `${window.location.origin}/.netlify/functions/gemini-proxy`;
+                console.log("Calling proxy function at:", proxyUrl);
+
+                const response = await fetch(proxyUrl, { // Use full URL for clarity
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userQuery: userQuery }) 
                 });
 
                 if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(`Proxy server error: ${err.error || response.statusText}`);
+                     let errorBody = await response.text(); // Get raw text
+                     try {
+                         errorBody = JSON.parse(errorBody); // Try parsing as JSON
+                     } catch (e) {
+                         // Keep as text if not JSON
+                     }
+                    console.error("Proxy response error:", response.status, response.statusText, errorBody);
+                    throw new Error(`Proxy server error: ${response.status} ${response.statusText}. ${typeof errorBody === 'object' ? errorBody.error : errorBody}`);
                 }
                 
                 const carInfo = await response.json(); 
+                 console.log("Received car info from proxy:", carInfo);
                 
-                document.getElementById('add-price').value = carInfo.price || '';
-                document.getElementById('add-range').value = carInfo.range || '';
-                document.getElementById('add-link').value = carInfo.link || '';
+                // Populate form (add checks for elements)
+                 const priceInput = document.getElementById('add-price');
+                 if (priceInput) priceInput.value = carInfo.price || '';
+                 
+                 const rangeInput = document.getElementById('add-range');
+                 if (rangeInput) rangeInput.value = carInfo.range || '';
+
+                 const linkInput = document.getElementById('add-link');
+                 if (linkInput) linkInput.value = carInfo.link || '';
                 
                 if (carInfo.features) {
                     for (const [featureId, status] of Object.entries(carInfo.features)) {
                         const select = document.getElementById(`add-${featureId}`);
                         const noteInput = document.getElementById(`add-note-${featureId}`);
-                        if (select && noteInput) {
-                            select.value = String(status.available);
+                        if (select && noteInput && status) { // Check status exists
+                            select.value = String(status.available); // Ensure string conversion
                             noteInput.value = status.note || '';
+                        } else {
+                            console.warn(`Could not populate form for feature ${featureId}. Elements or status missing.`);
                         }
                     }
                 }
 
             } catch (error) {
-                console.error("Error fetching car info:", error);
-                findCarError.textContent = "Could not find car info. Please fill manually.";
+                console.error("Error in handleFindCarInfo:", error);
+                findCarError.textContent = `Could not find car info: ${error.message}. Please fill manually.`;
                 findCarError.classList.remove('hidden');
             } finally {
                 findCarSpinner.classList.add('hidden');
@@ -1003,84 +1084,84 @@
             }
         }
 
-        // --- FIREBASE AUTH AND DATA LISTENER ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // User is signed in.
-                userId = user.uid;
-                console.log("User authenticated with ID:", userId);
-                userIdDisplay.textContent = `User ID: ${userId}`; // Display User ID
 
-                // Define the collection path using the user ID
-                carsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/cars`);
-                console.log("Firestore collection path:", carsCollectionRef.path);
+        // --- FIREBASE AUTH AND DATA LISTENER (MODIFIED) ---
+        // Ensure auth is initialized before using it
+        if (auth) {
+             onAuthStateChanged(auth, async (user) => {
+                 if (user) {
+                     userId = user.uid;
+                     console.log("User authenticated with ID:", userId);
+                     userIdDisplay.textContent = `User ID: ${userId}`; 
 
-                // Detach any existing listener before attaching a new one
-                if (unsubscribeCars) {
-                    console.log("Detaching previous listener.");
-                    unsubscribeCars();
-                }
+                     // Use simplified path: users/{userId}/cars
+                     carsCollectionRef = collection(db, `users/${userId}/cars`); 
+                     console.log("Firestore collection path:", carsCollectionRef.path);
 
-                // Attach a real-time listener
-                console.log("Attaching Firestore listener...");
-                unsubscribeCars = onSnapshot(carsCollectionRef, (snapshot) => {
-                    console.log("Firestore snapshot received:", snapshot.docs.length, "docs");
-                    carData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    console.log("Updated local carData:", carData);
-                    // Re-apply filters and sorting whenever data changes
-                    applyFiltersAndSort(); 
-                }, (error) => {
-                    console.error("Error listening to Firestore:", error);
-                    tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Error loading cars. Check console.</td></tr>`;
-                    // Handle listener errors (e.g., permissions)
-                });
+                     if (unsubscribeCars) {
+                         console.log("Detaching previous listener.");
+                         unsubscribeCars();
+                     }
 
-            } else {
-                // User is signed out, try to sign in.
-                console.log("User is not signed in. Attempting sign-in...");
-                userId = null;
-                userIdDisplay.textContent = 'Authenticating...';
-                carsCollectionRef = null;
-                if (unsubscribeCars) {
-                    unsubscribeCars();
-                    unsubscribeCars = null;
-                }
-                 carData = []; // Clear local data on sign out/failure
-                 applyFiltersAndSort(); // Update table to show empty state
+                     console.log("Attaching Firestore listener...");
+                     unsubscribeCars = onSnapshot(carsCollectionRef, (snapshot) => {
+                         console.log("Firestore snapshot received:", snapshot.docs.length, "docs");
+                         carData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                         console.log("Updated local carData:", carData);
+                         applyFiltersAndSort(); // Update UI whenever data changes
+                     }, (error) => {
+                         console.error("Error listening to Firestore:", error);
+                         tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Error loading cars. Check console.</td></tr>`;
+                     });
 
-                try {
-                    // Use custom token if available (provided by Canvas)
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                         console.log("Attempting sign-in with custom token...");
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                         console.log("Sign-in with custom token successful.");
-                        // onAuthStateChanged will trigger again with the user object
-                    } else {
-                         console.log("Attempting anonymous sign-in...");
-                        await signInAnonymously(auth);
+                 } else {
+                     console.log("User is not signed in. Attempting anonymous sign-in...");
+                     userId = null;
+                     userIdDisplay.textContent = 'Authenticating...';
+                     carsCollectionRef = null;
+                     if (unsubscribeCars) {
+                         unsubscribeCars();
+                         unsubscribeCars = null;
+                     }
+                     carData = []; 
+                     applyFiltersAndSort(); 
+
+                     try {
+                         // Remove custom token logic, only use anonymous
+                         await signInAnonymously(auth);
                          console.log("Anonymous sign-in successful.");
-                        // onAuthStateChanged will trigger again with the user object
-                    }
-                } catch (error) {
-                    console.error("Firebase Authentication Error:", error);
-                    userIdDisplay.textContent = 'Authentication Failed. Please refresh.';
-                    tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Authentication Failed. Cannot load cars.</td></tr>`;
-                }
-            }
-        });
+                         // onAuthStateChanged will trigger again with the user object
+                     } catch (error) {
+                         console.error("Firebase Anonymous Authentication Error:", error);
+                         userIdDisplay.textContent = 'Authentication Failed. Please refresh.';
+                         tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Authentication Failed. Cannot load cars.</td></tr>`;
+                     }
+                 }
+             });
+        } else {
+             console.error("Firebase Auth service is not available. Initialization likely failed.");
+             // Display error to the user if auth object is missing
+             userIdDisplay.textContent = 'Firebase Auth Error.';
+             tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Firebase Auth failed to initialize.</td></tr>`;
+        }
 
 
-        // --- EVENT LISTENERS (Mostly Unchanged) ---
+        // --- EVENT LISTENERS (Mostly Unchanged, added safety checks) ---
         document.addEventListener('DOMContentLoaded', () => {
-            populateAddCarFormFeatures();
-            // applyFiltersAndSort(); // Moved initial render to onSnapshot
+             // Only populate form features if the element exists
+             if (addFeaturesGrid) {
+                 populateAddCarFormFeatures();
+             } else {
+                 console.error("addFeaturesGrid element not found on DOMContentLoaded");
+             }
+             // applyFiltersAndSort(); // Initial render is handled by onSnapshot
 
             // Filter listeners
-            filterPowertrain.addEventListener('change', (e) => {
+            if (filterPowertrain) filterPowertrain.addEventListener('change', (e) => {
                 state.filters.powertrain = e.target.value;
                 applyFiltersAndSort();
             });
-            filterPrice.addEventListener('change', (e) => {
+            if (filterPrice) filterPrice.addEventListener('change', (e) => {
                 state.filters.price = e.target.value;
                 applyFiltersAndSort();
             });
@@ -1104,7 +1185,6 @@
                         state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
                     } else {
                         state.sortBy = sortKey;
-                        // Default sort order (descending for price/range/features, ascending otherwise)
                         const defaultDesc = ['price', 'range', ...featureDefinitions.map(f => f.id)];
                         state.sortOrder = defaultDesc.includes(sortKey) ? 'desc' : 'asc';
                     }
@@ -1113,87 +1193,97 @@
             });
 
             // Details Modal Listeners
-            tableBody.addEventListener('click', (e) => {
-                // Prevent opening modal if clicking the link icon directly
+            if (tableBody) tableBody.addEventListener('click', (e) => {
                 if (e.target.closest('a') && e.target.closest('td').querySelector('i.ph-arrow-square-out')) {
                     return; 
                 }
                 const row = e.target.closest('tr');
                 if (row && row.dataset.carId) {
-                    openModal(row.dataset.carId); // Pass Firestore ID (string)
+                    openModal(row.dataset.carId); 
                 }
             });
 
-
-            closeModalBtn.addEventListener('click', closeModal);
-            prevCarBtn.addEventListener('click', () => showNextPrevCar(-1));
-            nextCarBtn.addEventListener('click', () => showNextPrevCar(1));
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if (prevCarBtn) prevCarBtn.addEventListener('click', () => showNextPrevCar(-1));
+            if (nextCarBtn) nextCarBtn.addEventListener('click', () => showNextPrevCar(1));
             
-            modalEditBtn.addEventListener('click', () => {
-                const car = carData.find(c => c.id === state.currentCarId);
+            if (modalEditBtn) modalEditBtn.addEventListener('click', () => {
+                 if (!state.currentCarId) {
+                     console.warn("Edit button clicked but no car is selected.");
+                     return;
+                 }
+                 // Ensure carData is populated before trying to find
+                 if (!carData || carData.length === 0) {
+                      console.warn("Edit button clicked but carData is empty.");
+                     return;
+                 }
+                const car = carData.find(c => c && c.id === state.currentCarId); // Add check for c
                 if (car) {
                     closeModal();
                     openEditCarModal(car);
                 } else {
                      console.error("Cannot edit: Car data not found for ID", state.currentCarId);
+                     alert("Error: Could not find the selected car's data to edit.");
                 }
             });
-            modalDeleteBtn.addEventListener('click', openDeleteConfirmModal);
+             if (modalDeleteBtn) modalDeleteBtn.addEventListener('click', openDeleteConfirmModal);
 
             // Add Car Modal Listeners
-            openAddCarBtn.addEventListener('click', openAddCarModal);
-            closeAddCarBtn.addEventListener('click', closeAddCarModal);
-            cancelAddCarBtn.addEventListener('click', closeAddCarModal);
-            addCarForm.addEventListener('submit', handleAddCarSubmit); // Async handler now
+            if (openAddCarBtn) openAddCarBtn.addEventListener('click', openAddCarModal);
+            if (closeAddCarBtn) closeAddCarBtn.addEventListener('click', closeAddCarModal);
+            if (cancelAddCarBtn) cancelAddCarBtn.addEventListener('click', closeAddCarModal);
+            if (addCarForm) addCarForm.addEventListener('submit', handleAddCarSubmit); 
 
-            findCarInfoBtn.addEventListener('click', handleFindCarInfo); // Async handler now
+            if (findCarInfoBtn) findCarInfoBtn.addEventListener('click', handleFindCarInfo); 
 
             // Image Drop Zone Listeners
-            imageDropZone.addEventListener('click', () => {
-                imageFileInput.click();
+            if (imageDropZone) imageDropZone.addEventListener('click', () => {
+                 if (imageFileInput) imageFileInput.click();
             });
-            imageFileInput.addEventListener('change', (e) => {
+            if (imageFileInput) imageFileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
                     handleImageFile(e.target.files[0]);
                 }
             });
-            imageDropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                imageDropZone.classList.add('drop-zone-active');
-            });
-            imageDropZone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                imageDropZone.classList.remove('drop-zone-active');
-            });
-            imageDropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                imageDropZone.classList.remove('drop-zone-active');
-                if (e.dataTransfer.files.length > 0) {
-                    handleImageFile(e.dataTransfer.files[0]);
-                }
-            });
-            addImageUrlInput.addEventListener('paste', (e) => {
-                if (e.clipboardData.files.length > 0) {
+             if (imageDropZone) {
+                 imageDropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    imageDropZone.classList.add('drop-zone-active');
+                 });
+                 imageDropZone.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    imageDropZone.classList.remove('drop-zone-active');
+                 });
+                 imageDropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    imageDropZone.classList.remove('drop-zone-active');
+                    if (e.dataTransfer.files.length > 0) {
+                        handleImageFile(e.dataTransfer.files[0]);
+                    }
+                 });
+             }
+             if (addImageUrlInput) addImageUrlInput.addEventListener('paste', (e) => {
+                if (e.clipboardData && e.clipboardData.files.length > 0) { // Check clipboardData exists
                     e.preventDefault(); 
                     handleImageFile(e.clipboardData.files[0]);
                 }
             });
 
             // Delete Confirm Modal Listeners
-            cancelDeleteBtn.addEventListener('click', closeDeleteConfirmModal);
-            confirmDeleteBtn.addEventListener('click', handleDeleteCar); // Async handler now
+            if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', closeDeleteConfirmModal);
+            if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', handleDeleteCar); 
 
             // Global Listeners
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    if (!modal.classList.contains('hidden')) closeModal();
-                    if (!addCarModal.classList.contains('hidden')) closeAddCarModal();
-                    if (!deleteConfirmModal.classList.contains('hidden')) closeDeleteConfirmModal();
+                    if (modal && !modal.classList.contains('hidden')) closeModal();
+                    if (addCarModal && !addCarModal.classList.contains('hidden')) closeAddCarModal();
+                    if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) closeDeleteConfirmModal();
                 }
             });
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-            addCarModal.addEventListener('click', (e) => { if (e.target === addCarModal) closeAddCarModal(); });
-            deleteConfirmModal.addEventListener('click', (e) => { if (e.target === deleteConfirmModal) closeDeleteConfirmModal(); });
+             if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+             if (addCarModal) addCarModal.addEventListener('click', (e) => { if (e.target === addCarModal) closeAddCarModal(); });
+             if (deleteConfirmModal) deleteConfirmModal.addEventListener('click', (e) => { if (e.target === deleteConfirmModal) closeDeleteConfirmModal(); });
         });
 
     </script>

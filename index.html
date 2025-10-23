@@ -65,6 +65,8 @@
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-gray-900">Car Comparison Tool</h1>
                 <p class="mt-2 text-lg text-gray-600">Potential car buys for the Netherlands. Click any row for details.</p>
+                <!-- Display User ID -->
+                <p id="user-id-display" class="mt-1 text-xs text-gray-500">Loading user info...</p>
             </div>
             <button id="open-add-car-modal-btn" class="mt-4 sm:mt-0 px-5 py-3 rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex-shrink-0">
                 <i class="ph-duotone ph-plus-circle mr-2"></i>
@@ -156,6 +158,7 @@
                 </thead>
                 <tbody id="car-table-body" class="bg-white divide-y divide-gray-200">
                     <!-- JS will populate this -->
+                     <tr><td colspan="12" class="p-8 text-center text-gray-500">Connecting to database...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -358,111 +361,47 @@
         </div>
     </div>
 
+    <!-- Firebase SDK Scripts (Add these) -->
+    <script type="module">
+        // Import necessary Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInAnonymously, 
+            signInWithCustomToken, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            addDoc, 
+            deleteDoc, 
+            collection, 
+            onSnapshot, 
+            setLogLevel 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <script>
+        // --- FIREBASE INITIALIZATION ---
+        // Get config from global variable (provided by Canvas environment)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_FALLBACK_API_KEY", authDomain: "...", projectId: "..." }; // Replace with your actual fallback if needed
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        setLogLevel('debug'); // Enable detailed Firestore logging
+
+        let userId = null; // Will hold the authenticated user ID
+        let carsCollectionRef = null; // Will hold the reference to the user's car collection
+        let unsubscribeCars = null; // Function to detach the Firestore listener
+
+        // --- LOCALSTORAGE FUNCTIONS (REMOVED) ---
+        // Removed saveCarsToLocalStorage and loadCarsFromLocalStorage
+
         // --- DATA ---
-        let carData = [
-            {
-                id: 1,
-                make: "Hyundai",
-                model: "Kona Electric (65.4 kWh)",
-                powertrain: "EV",
-                price: 39995,
-                lease: 399,
-                range: 514,
-                imageUrl: "https://placehold.co/600x400/334155/E2E8F0?text=Hyundai+Kona",
-                link: "https://www.hyundai.com/nl/modellen/kona-electric.html",
-                features: {
-                    wirelessCarPlay: { available: true, note: "Standard with 12.3\" screen" },
-                    driverDisplay: { available: true, note: "12.3\" digital cluster" },
-                    wirelessCharging: { available: true, note: "Standard on Comfort trim" },
-                    hud: { available: 'trim', note: "Available on Premium / N Line Sky trims (approx. >€44k)" },
-                    sunroof: { available: 'trim', note: "Available on Premium / N Line Sky trims" },
-                    physicalAC: { available: true, note: "Retains physical buttons for climate" }
-                },
-                note: "Excellent all-rounder with great range for the price. Meets your key 'physical A/C' and 'driver display' needs. Other wishes are on higher trims."
-            },
-            {
-                id: 2,
-                make: "Kia",
-                model: "Niro EV (64.8 kWh)",
-                powertrain: "EV",
-                price: 38995,
-                lease: 499,
-                range: 460,
-                imageUrl: "https://placehold.co/600x400/1E40AF/E2E8F0?text=Kia+Niro+EV",
-                link: "https://www.kia.com/nl/modellen/niro-ev/",
-                features: {
-                    wirelessCarPlay: { available: true, note: "Standard" },
-                    driverDisplay: { available: true, note: "Digital cluster" },
-                    wirelessCharging: { available: 'trim', note: "Available on DynamicLine trim (approx. €41,995)" },
-                    hud: { available: 'trim', note: "Available on ExecutiveLine trim (approx. >€45k)" },
-                    sunroof: { available: 'trim', note: "Available on ExecutiveLine trim" },
-                    physicalAC: { available: true, note: "Switchable touch/physical climate bar" }
-                },
-                note: "Very similar to the Kona. Strong competitor. Your desired features (HUD, Sunroof, Wireless Charging) are bundled in higher trims."
-            },
-            {
-                id: 3,
-                make: "Renault",
-                model: "Scénic E-Tech (60 kWh)",
-                powertrain: "EV",
-                price: 39490,
-                lease: 499,
-                range: 430,
-                imageUrl: "https://placehold.co/600x400/6D28D9/E2E8F0?text=Renault+Scénic",
-                link: "https://www.renault.nl/elektrische-auto/scenic-e-tech-electric.html",
-                features: {
-                    wirelessCarPlay: { available: true, note: "Standard with 9\" screen" },
-                    driverDisplay: { available: true, note: "12.3\" OpenR driver display" },
-                    wirelessCharging: { available: 'trim', note: "Standard on 'techno' trim (approx. €42,290)" },
-                    hud: { available: 'trim', note: "Available in a pack on 'techno' trim" },
-                    sunroof: { available: 'trim', note: "Solarbay panoramic roof, available in a pack on 'techno' trim" },
-                    physicalAC: { available: true, note: "Has a row of physical toggle switches" }
-                },
-                note: "Brand new, very modern interior. Base price is just in budget, but you'll need the 'techno' trim + packs to get all your desired features."
-            },
-            {
-                id: 4,
-                make: "Toyota",
-                model: "C-HR (1.8 Hybrid)",
-                powertrain: "Hybrid",
-                price: 39295,
-                lease: 459,
-                range: null,
-                imageUrl: "https://placehold.co/600x400/DC2626/E2E8F0?text=Toyota+C-HR",
-                link: "https://www.toyota.nl/modellen/c-hr",
-                features: {
-                    wirelessCarPlay: { available: true, note: "Standard" },
-                    driverDisplay: { available: true, note: "Standard (7\" or 12.3\" depending on trim)" },
-                    wirelessCharging: { available: 'trim', note: "Available on GR Sport / Premiere Edition (approx. >€44k)" },
-                    hud: { available: 'trim', note: "Available on GR Sport / Premiere Edition" },
-                    sunroof: { available: 'trim', note: "Panoramic roof on Premiere Edition" },
-                    physicalAC: { available: true, note: "Retains physical climate controls" }
-                },
-                note: "A great *hybrid* option. No range anxiety. The 'Dynamic' trim fits your budget well, but like the EVs, HUD/Sunroof are on more expensive trims."
-            },
-            {
-                id: 5,
-                make: "Volvo",
-                model: "EX30 (Single Motor)",
-                powertrain: "EV",
-                price: 36795,
-                lease: 449,
-                range: 344,
-                imageUrl: "https://placehold.co/600x400/047857/E2E8F0?text=Volvo+EX30",
-                link: "https://www.volvocars.com/nl/models/ex30/",
-                features: {
-                    wirelessCarPlay: { available: true, note: "Standard" },
-                    driverDisplay: { available: false, note: "No driver display, only a central screen" },
-                    wirelessCharging: { available: true, note: "Standard on 'Core' trim" },
-                    hud: { available: false, note: "Not available on this model" },
-                    sunroof: { available: 'trim', note: "Panoramic glass roof on 'Ultra' trim (approx. >€45k)" },
-                    physicalAC: { available: false, note: "All A/C controls are on the touchscreen" }
-                },
-                note: "Included as a popular option, but it FAILS two of your key requirements: no separate driver display and no physical A/C buttons."
-            }
-        ];
+        let carData = []; // Start with an empty array, will be populated by Firestore
 
         // --- FEATURE DEFINITIONS ---
         const featureDefinitions = [
@@ -521,9 +460,9 @@
         const dropZoneText = document.getElementById('drop-zone-text');
         const imageFileInput = document.getElementById('image-file-input');
         const addImageUrlInput = document.getElementById('add-imageUrl');
+        const userIdDisplay = document.getElementById('user-id-display'); // Element to display user ID
 
-        // --- MODAL FUNCTIONS (Details) ---
-
+        // --- MODAL FUNCTIONS (Details - Unchanged) ---
         function getFeatureDetailHTML(label, status) {
             let icon = '';
             let textColor = 'text-gray-800';
@@ -550,7 +489,12 @@
         }
         
         function populateModal(car) {
-            state.currentCarId = car.id; 
+             if (!car) { // Add safety check
+                console.error("Attempted to populate modal with undefined car");
+                closeModal();
+                return;
+            }
+            state.currentCarId = car.id; // Use Firestore doc ID
             document.getElementById('modal-title').textContent = `${car.make} ${car.model}`;
             document.getElementById('modal-image').src = car.imageUrl;
             document.getElementById('modal-image').alt = `${car.make} ${car.model}`;
@@ -568,16 +512,31 @@
             const featuresList = document.getElementById('modal-features-list');
             featuresList.innerHTML = '';
             featureDefinitions.forEach(feature => {
-                featuresList.innerHTML += getFeatureDetailHTML(feature.label, car.features[feature.id]);
+                 // Safety check for potentially missing feature data in Firestore
+                const featureData = car.features && car.features[feature.id] 
+                    ? car.features[feature.id] 
+                    : { available: false, note: 'Data missing' };
+                featuresList.innerHTML += getFeatureDetailHTML(feature.label, featureData);
             });
         }
 
         function openModal(carId) {
-            const carIndex = state.cars.findIndex(c => c.id === carId);
-            if (carIndex === -1) return;
-            
-            state.currentCarIndex = carIndex;
-            const car = state.cars[carIndex];
+             // Find car in the local carData array (managed by onSnapshot)
+            const car = carData.find(c => c.id === carId); 
+            if (!car) {
+                 console.error(`Car with ID ${carId} not found in local data.`);
+                 return;
+            }
+
+            const carIndex = state.cars.findIndex(c => c.id === carId); // Find index in filtered list
+            if (carIndex === -1) {
+                 console.warn(`Car with ID ${carId} found in global data but not in current filtered view.`);
+                 // Decide how to handle: maybe open anyway, or don't. Let's open it.
+                 state.currentCarIndex = carData.findIndex(c => c.id === carId); // Find index in global list instead
+            } else {
+                state.currentCarIndex = carIndex;
+            }
+
             populateModal(car);
             
             modal.classList.remove('hidden');
@@ -596,19 +555,23 @@
         }
 
         function showNextPrevCar(direction) {
+            if (state.cars.length === 0) return; // Prevent errors if filtered list is empty
+
             let newIndex = state.currentCarIndex + direction;
             if (newIndex < 0) newIndex = state.cars.length - 1;
             if (newIndex >= state.cars.length) newIndex = 0;
             
             const newCarId = state.cars[newIndex].id;
-            const car = carData.find(c => c.id === newCarId);
+            const car = carData.find(c => c.id === newCarId); // Find actual car from global list
             if (car) {
                 state.currentCarIndex = newIndex; 
                 populateModal(car);
+            } else {
+                 console.error("Could not find next/prev car in global data:", newCarId);
             }
         }
 
-        // --- MODAL FUNCTIONS (Add/Edit Car) ---
+        // --- MODAL FUNCTIONS (Add/Edit Car - Modified for Firestore) ---
 
         function openAddCarModal() {
             addCarForm.reset();
@@ -633,9 +596,10 @@
             addCarForm.reset();
             addModalTitle.textContent = `Edit ${car.make} ${car.model}`;
             addCarSubmitBtn.textContent = "Update Car";
-            addCarForm.dataset.editingId = car.id; 
+            addCarForm.dataset.editingId = car.id; // Use Firestore ID
             findCarError.classList.add('hidden');
 
+            // Populate form
             document.getElementById('add-make').value = car.make;
             document.getElementById('add-model').value = car.model;
             document.getElementById('add-powertrain').value = car.powertrain;
@@ -646,6 +610,7 @@
             document.getElementById('add-imageUrl').value = car.imageUrl;
             document.getElementById('add-note').value = car.note;
 
+            // Populate image drop zone preview
             if (car.imageUrl) {
                 imagePreview.src = car.imageUrl; 
                 imagePreview.classList.remove('hidden');
@@ -657,8 +622,11 @@
             }
             imageDropZone.classList.remove('drop-zone-active');
 
+            // Populate features
             featureDefinitions.forEach(feature => {
-                const status = car.features[feature.id];
+                const status = (car.features && car.features[feature.id]) 
+                                ? car.features[feature.id] 
+                                : { available: false, note: '' }; // Default if missing
                 const select = document.getElementById(`add-${feature.id}`);
                 const noteInput = document.getElementById(`add-note-${feature.id}`);
                 
@@ -704,14 +672,21 @@
             });
         }
 
-        function handleAddCarSubmit(e) {
+        // Modified submit handler to use Firestore
+        async function handleAddCarSubmit(e) {
             e.preventDefault();
-            const editingId = addCarForm.dataset.editingId ? parseInt(addCarForm.dataset.editingId, 10) : null;
+            if (!carsCollectionRef) {
+                console.error("Firestore connection not ready.");
+                // Optionally show a user-facing error message
+                return;
+            }
+
+            const editingId = addCarForm.dataset.editingId; // Firestore ID is string
             const make = document.getElementById('add-make').value; 
             const imageUrlValue = document.getElementById('add-imageUrl').value; 
             
-            const carDataObj = {
-                id: editingId || Date.now(),
+            // Create the car object *without* the ID field for adding
+             const carDataObj = {
                 make: make, 
                 model: document.getElementById('add-model').value,
                 powertrain: document.getElementById('add-powertrain').value,
@@ -723,6 +698,7 @@
                 note: document.getElementById('add-note').value || '',
                 features: {}
             };
+
 
             document.querySelectorAll('.add-feature-select').forEach(select => {
                 const featureId = select.dataset.featureId;
@@ -739,20 +715,32 @@
                 };
             });
             
-            if (editingId) {
-                const carIndex = carData.findIndex(c => c.id === editingId);
-                if (carIndex > -1) {
-                    carData[carIndex] = carDataObj;
-                }
-            } else {
-                carData.push(carDataObj);
-            }
+            addCarSubmitBtn.disabled = true; // Disable button during operation
 
-            applyFiltersAndSort();
-            closeAddCarModal();
+            try {
+                if (editingId) {
+                    // Update existing car in Firestore
+                    const carDocRef = doc(carsCollectionRef, editingId);
+                    await setDoc(carDocRef, carDataObj, { merge: true }); // Use setDoc with merge to update or overwrite
+                    console.log("Car updated successfully:", editingId);
+                } else {
+                    // Add new car to Firestore
+                    const docRef = await addDoc(carsCollectionRef, carDataObj);
+                    console.log("Car added successfully with ID:", docRef.id);
+                }
+                 // No need to manually update local carData here, onSnapshot will handle it.
+                // applyFiltersAndSort(); // onSnapshot triggers this
+                closeAddCarModal();
+
+            } catch (error) {
+                console.error("Error saving car to Firestore:", error);
+                 // TODO: Show user-friendly error message
+            } finally {
+                 addCarSubmitBtn.disabled = false; // Re-enable button
+            }
         }
         
-        // --- MODAL FUNCTIONS (Delete Confirm) ---
+        // --- MODAL FUNCTIONS (Delete Confirm - Modified for Firestore) ---
 
         function openDeleteConfirmModal() {
             deleteConfirmModal.classList.remove('hidden');
@@ -770,31 +758,50 @@
             }, 300);
         }
         
-        function handleDeleteCar() {
-            if (state.currentCarId) {
-                carData = carData.filter(c => c.id !== state.currentCarId);
-                state.currentCarId = null;
-                closeModal();
-                closeDeleteConfirmModal();
-                applyFiltersAndSort();
+        // Modified delete handler to use Firestore
+        async function handleDeleteCar() {
+            if (state.currentCarId && carsCollectionRef) {
+                const carDocRef = doc(carsCollectionRef, state.currentCarId);
+                confirmDeleteBtn.disabled = true; // Disable button
+                
+                try {
+                    await deleteDoc(carDocRef);
+                    console.log("Car deleted successfully:", state.currentCarId);
+                    state.currentCarId = null; // Clear selected ID
+                     // No need to manually update local carData here, onSnapshot will handle it.
+                    closeModal();
+                    closeDeleteConfirmModal();
+                    // applyFiltersAndSort(); // onSnapshot triggers this
+
+                } catch (error) {
+                     console.error("Error deleting car from Firestore:", error);
+                     // TODO: Show user-friendly error message
+                } finally {
+                     confirmDeleteBtn.disabled = false; // Re-enable button
+                }
+            } else {
+                 console.error("Cannot delete: No car selected or Firestore not ready.");
             }
         }
 
-        // --- TABLE & FILTER FUNCTIONS ---
+        // --- TABLE & FILTER FUNCTIONS (Unchanged, but rely on updated carData) ---
 
         function renderFeatureIcon(status) {
+             // Add default status if missing
+            const safeStatus = status || { available: false, note: 'Data missing' };
             let icon = 'ph-x-circle text-red-500';
-            let title = status.note || 'Not available';
+            let title = safeStatus.note || 'Not available';
 
-            if (status.available === true) {
+            if (safeStatus.available === true) {
                 icon = 'ph-check-circle text-green-500';
-                title = status.note || 'Standard';
-            } else if (status.available === 'trim') {
+                title = safeStatus.note || 'Standard';
+            } else if (safeStatus.available === 'trim') {
                 icon = 'ph-warning-circle text-yellow-500';
-                title = status.note || 'Available on higher trim';
+                title = safeStatus.note || 'Available on higher trim';
             }
             return `<i class="ph-duotone ${icon} text-2xl" title="${title}"></i>`;
         }
+
 
         function renderTable() {
             tableBody.innerHTML = '';
@@ -802,7 +809,7 @@
                  tableBody.innerHTML = `
                     <tr>
                         <td colspan="12" class="px-6 py-12 text-center text-gray-500">
-                            No cars match the current filters.
+                             ${userId ? 'No cars found. Add some!' : 'Loading cars...'}
                         </td>
                     </tr>
                  `;
@@ -812,7 +819,7 @@
             state.cars.forEach(car => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50 cursor-pointer transition-colors';
-                tr.dataset.carId = car.id;
+                tr.dataset.carId = car.id; // Use Firestore document ID
                 
                 tr.innerHTML = `
                     <td class="px-4 py-3 whitespace-nowrap">
@@ -833,12 +840,12 @@
                     <td class="px-4 py-3 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${car.range ? car.range + ' km' : 'N/A'}</div>
                     </td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.physicalAC)}</td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.wirelessCarPlay)}</td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.wirelessCharging)}</td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.driverDisplay)}</td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.hud)}</td>
-                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.sunroof)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.physicalAC)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.wirelessCarPlay)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.wirelessCharging)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.driverDisplay)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.hud)}</td>
+                    <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features?.sunroof)}</td>
                     <td class="px-4 py-3 text-center">
                         <a href="${car.link}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600" onclick="(e) => e.stopPropagation()">
                             <i class="ph-duotone ph-arrow-square-out text-2xl"></i>
@@ -867,7 +874,7 @@
         
         function getSortValue(car, sortKey) {
             if (featureDefinitions.map(f => f.id).includes(sortKey)) {
-                const feature = car.features[sortKey];
+                 const feature = car.features ? car.features[sortKey] : null; // Safety check
                 if (!feature) return 1;
                 if (feature.available === true) return 3;
                 if (feature.available === 'trim') return 2;
@@ -876,11 +883,17 @@
             if (sortKey === 'price' || sortKey === 'range') {
                 return car[sortKey] || 0; 
             }
-            return car[sortKey];
+             // Ensure make and model are treated as strings for sorting
+            if (sortKey === 'model') {
+                 return `${car.make || ''} ${car.model || ''}`.toLowerCase();
+            }
+            return (car[sortKey] || '').toString().toLowerCase(); // Default string sort
         }
 
+
         function applyFiltersAndSort() {
-            let filteredCars = [...carData];
+            // Use the global carData (populated by Firestore) as the source
+            let filteredCars = [...carData]; 
 
             if (state.filters.powertrain !== 'all') {
                 filteredCars = filteredCars.filter(car => car.powertrain === state.filters.powertrain);
@@ -892,7 +905,7 @@
             if (state.filters.features.length > 0) {
                 filteredCars = filteredCars.filter(car => {
                     return state.filters.features.every(featureKey => {
-                        const feature = car.features[featureKey];
+                        const feature = car.features ? car.features[featureKey] : null; // Safety check
                         return feature && feature.available; 
                     });
                 });
@@ -904,6 +917,12 @@
 
                 let modifier = state.sortOrder === 'asc' ? 1 : -1;
                 
+                 // Handle string sorting specifically
+                if (typeof valA === 'string' && typeof valB === 'string') {
+                    return valA.localeCompare(valB) * modifier;
+                }
+
+                // Handle numeric sorting (including features which return numbers)
                 if (valA < valB) return -1 * modifier;
                 if (valA > valB) return 1 * modifier;
                 return 0;
@@ -914,7 +933,7 @@
             updateSortIcons();
         }
 
-        // --- IMAGE DROP ZONE HANDLER ---
+        // --- IMAGE DROP ZONE HANDLER (Unchanged) ---
         function handleImageFile(file) {
             if (file && file.type.startsWith('image/')) {
                 const reader = new FileReader();
@@ -929,7 +948,7 @@
             }
         }
 
-        // --- MODIFIED API FUNCTION ---
+        // --- GEMINI API FUNCTION (Unchanged) ---
         async function handleFindCarInfo() {
             const make = document.getElementById('add-make').value;
             const model = document.getElementById('add-model').value;
@@ -946,12 +965,10 @@
             const userQuery = `Find the specifications for the car: ${make} ${model} for the Netherlands market. Get the starting price in Euros, WLTP range in km (if electric), and the availability of these specific features: Physical A/C controls, Wireless Apple CarPlay, Wireless Phone Charging, a separate Driver Display, Heads-Up Display (HUD), and Sunroof. For each feature, state if it's standard ('true'), not available ('false'), or available on a higher trim ('trim') and add a brief note.`;
 
             try {
-                // --- THIS IS THE KEY CHANGE ---
-                // Instead of calling Google, we call our OWN function
                 const response = await fetch('/.netlify/functions/gemini-proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userQuery: userQuery }) // Send the query to our function
+                    body: JSON.stringify({ userQuery: userQuery }) 
                 });
 
                 if (!response.ok) {
@@ -959,9 +976,8 @@
                     throw new Error(`Proxy server error: ${err.error || response.statusText}`);
                 }
                 
-                const carInfo = await response.json(); // Get the JSON back from our function
+                const carInfo = await response.json(); 
                 
-                // Populate the form with the found data
                 document.getElementById('add-price').value = carInfo.price || '';
                 document.getElementById('add-range').value = carInfo.range || '';
                 document.getElementById('add-link').value = carInfo.link || '';
@@ -987,11 +1003,77 @@
             }
         }
 
+        // --- FIREBASE AUTH AND DATA LISTENER ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                console.log("User authenticated with ID:", userId);
+                userIdDisplay.textContent = `User ID: ${userId}`; // Display User ID
 
-        // --- EVENT LISTENERS ---
+                // Define the collection path using the user ID
+                carsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/cars`);
+                console.log("Firestore collection path:", carsCollectionRef.path);
+
+                // Detach any existing listener before attaching a new one
+                if (unsubscribeCars) {
+                    console.log("Detaching previous listener.");
+                    unsubscribeCars();
+                }
+
+                // Attach a real-time listener
+                console.log("Attaching Firestore listener...");
+                unsubscribeCars = onSnapshot(carsCollectionRef, (snapshot) => {
+                    console.log("Firestore snapshot received:", snapshot.docs.length, "docs");
+                    carData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    console.log("Updated local carData:", carData);
+                    // Re-apply filters and sorting whenever data changes
+                    applyFiltersAndSort(); 
+                }, (error) => {
+                    console.error("Error listening to Firestore:", error);
+                    tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Error loading cars. Check console.</td></tr>`;
+                    // Handle listener errors (e.g., permissions)
+                });
+
+            } else {
+                // User is signed out, try to sign in.
+                console.log("User is not signed in. Attempting sign-in...");
+                userId = null;
+                userIdDisplay.textContent = 'Authenticating...';
+                carsCollectionRef = null;
+                if (unsubscribeCars) {
+                    unsubscribeCars();
+                    unsubscribeCars = null;
+                }
+                 carData = []; // Clear local data on sign out/failure
+                 applyFiltersAndSort(); // Update table to show empty state
+
+                try {
+                    // Use custom token if available (provided by Canvas)
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                         console.log("Attempting sign-in with custom token...");
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                         console.log("Sign-in with custom token successful.");
+                        // onAuthStateChanged will trigger again with the user object
+                    } else {
+                         console.log("Attempting anonymous sign-in...");
+                        await signInAnonymously(auth);
+                         console.log("Anonymous sign-in successful.");
+                        // onAuthStateChanged will trigger again with the user object
+                    }
+                } catch (error) {
+                    console.error("Firebase Authentication Error:", error);
+                    userIdDisplay.textContent = 'Authentication Failed. Please refresh.';
+                    tableBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-red-500">Authentication Failed. Cannot load cars.</td></tr>`;
+                }
+            }
+        });
+
+
+        // --- EVENT LISTENERS (Mostly Unchanged) ---
         document.addEventListener('DOMContentLoaded', () => {
             populateAddCarFormFeatures();
-            applyFiltersAndSort();
+            // applyFiltersAndSort(); // Moved initial render to onSnapshot
 
             // Filter listeners
             filterPowertrain.addEventListener('change', (e) => {
@@ -1022,6 +1104,7 @@
                         state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
                     } else {
                         state.sortBy = sortKey;
+                        // Default sort order (descending for price/range/features, ascending otherwise)
                         const defaultDesc = ['price', 'range', ...featureDefinitions.map(f => f.id)];
                         state.sortOrder = defaultDesc.includes(sortKey) ? 'desc' : 'asc';
                     }
@@ -1031,12 +1114,16 @@
 
             // Details Modal Listeners
             tableBody.addEventListener('click', (e) => {
-                if (e.target.closest('a')) return;
+                // Prevent opening modal if clicking the link icon directly
+                if (e.target.closest('a') && e.target.closest('td').querySelector('i.ph-arrow-square-out')) {
+                    return; 
+                }
                 const row = e.target.closest('tr');
                 if (row && row.dataset.carId) {
-                    openModal(parseInt(row.dataset.carId, 10));
+                    openModal(row.dataset.carId); // Pass Firestore ID (string)
                 }
             });
+
 
             closeModalBtn.addEventListener('click', closeModal);
             prevCarBtn.addEventListener('click', () => showNextPrevCar(-1));
@@ -1047,6 +1134,8 @@
                 if (car) {
                     closeModal();
                     openEditCarModal(car);
+                } else {
+                     console.error("Cannot edit: Car data not found for ID", state.currentCarId);
                 }
             });
             modalDeleteBtn.addEventListener('click', openDeleteConfirmModal);
@@ -1055,9 +1144,9 @@
             openAddCarBtn.addEventListener('click', openAddCarModal);
             closeAddCarBtn.addEventListener('click', closeAddCarModal);
             cancelAddCarBtn.addEventListener('click', closeAddCarModal);
-            addCarForm.addEventListener('submit', handleAddCarSubmit);
+            addCarForm.addEventListener('submit', handleAddCarSubmit); // Async handler now
 
-            findCarInfoBtn.addEventListener('click', handleFindCarInfo);
+            findCarInfoBtn.addEventListener('click', handleFindCarInfo); // Async handler now
 
             // Image Drop Zone Listeners
             imageDropZone.addEventListener('click', () => {
@@ -1092,7 +1181,7 @@
 
             // Delete Confirm Modal Listeners
             cancelDeleteBtn.addEventListener('click', closeDeleteConfirmModal);
-            confirmDeleteBtn.addEventListener('click', handleDeleteCar);
+            confirmDeleteBtn.addEventListener('click', handleDeleteCar); // Async handler now
 
             // Global Listeners
             window.addEventListener('keydown', (e) => {

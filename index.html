@@ -133,7 +133,6 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable" data-sort="range">
                             <span class="flex items-center">Range (WLTP) <i class="ph-duotone ph-arrows-vertical ml-2 sort-icon"></i></span>
                         </th>
-                        <!-- 1. Textual Headers -->
                         <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider sortable" data-sort="physicalAC">
                             <span class="flex items-center justify-center">Physical A/C <i class="ph-duotone ph-arrows-vertical ml-2 sort-icon"></i></span>
                         </th>
@@ -170,13 +169,12 @@
                 <i class="ph-duotone ph-x-circle text-4xl"></i>
             </button>
 
-            <!-- 2. Updated Modal Layout -->
             <div class="modal-content-area max-h-[90vh] overflow-y-auto">
-                <div> <!-- Removed md:grid md:grid-cols-5 -->
-                    <div> <!-- Removed md:col-span-2 -->
-                        <img id="modal-image" src="https://placehold.co/600x400" alt="Car Image" class="w-full h-64 object-cover"> <!-- Removed md:h-full -->
+                <div> 
+                    <div> 
+                        <img id="modal-image" src="https://placehold.co/600x400" alt="Car Image" class="w-full h-64 object-cover">
                     </div>
-                    <div class="p-6 sm:p-8"> <!-- Removed md:col-span-3 -->
+                    <div class="p-6 sm:p-8"> 
                         <h2 id="modal-title" class="text-3xl font-bold text-gray-900">Car Model</h2>
                         <span id="modal-powertrain-badge" class="inline-block bg-blue-100 text-blue-800 text-sm font-medium mt-2 px-3 py-1 rounded-full"></span>
                         
@@ -202,9 +200,6 @@
                             <!-- JS will populate this -->
                         </ul>
 
-                        <!-- 1. Summarize Reviews Feature Removed -->
-
-                        <!-- 3. Edit/Delete Buttons -->
                         <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <a id="modal-link" href="#" target="_blank" rel="noopener noreferrer" class="sm:col-span-3 w-full text-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
                                 Visit Manufacturer Page
@@ -252,7 +247,6 @@
                         </div>
                     </div>
                     
-                    <!-- 4. Auto-fill button -->
                     <div class="sm:col-span-2">
                         <button type="button" id="find-car-info-btn" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             <i class="ph-duotone ph-magnifying-glass mr-2"></i>
@@ -292,10 +286,8 @@
                         <input type="url" id="add-link" placeholder="https://www.example.com" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
-                    <!-- This div replaces the old "Image URL" div -->
                      <div>
                         <label class="block text-sm font-medium text-gray-700">Car Image</label>
-                        <!-- New Drop Zone -->
                         <div id="image-drop-zone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md transition-colors group hover:border-blue-500 cursor-pointer">
                             <div class="space-y-1 text-center">
                                 <img id="image-preview" src="" alt="Image preview" class="hidden max-h-32 mx-auto rounded-md shadow-sm">
@@ -308,10 +300,7 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Hidden file input for the "Click to upload" functionality -->
                         <input id="image-file-input" type="file" class="hidden" accept="image/*">
-                        
-                        <!-- URL input (now populated by drop OR manual entry) -->
                         <label for="add-imageUrl" class="block text-sm font-medium text-gray-700 mt-2">Image URL</label>
                         <input type="text" id="add-imageUrl" placeholder="Drag/drop image above or paste URL here" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                     </div>
@@ -341,7 +330,6 @@
         </div>
     </div>
 
-    <!-- 3. Delete Confirmation Modal -->
     <div id="delete-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4 hidden" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title">
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-sm w-full relative transition-all duration-300 transform scale-95 opacity-0" id="delete-modal-container">
             <div class="p-6">
@@ -496,12 +484,11 @@
                 price: 'all',
                 features: []
             },
-            currentCarId: null // 3. Used for edit/delete
+            currentCarId: null 
         };
 
         // --- ELEMENTS ---
         const tableBody = document.getElementById('car-table-body');
-        // Details Modal
         const modal = document.getElementById('car-modal');
         const modalContainer = document.getElementById('modal-container');
         const closeModalBtn = document.getElementById('close-modal');
@@ -509,8 +496,6 @@
         const nextCarBtn = document.getElementById('next-car');
         const modalEditBtn = document.getElementById('modal-edit-btn');
         const modalDeleteBtn = document.getElementById('modal-delete-btn');
-        // 1. Remove elements for Review Summary
-        // Add/Edit Car Modal
         const addCarModal = document.getElementById('add-car-modal');
         const addModalContainer = document.getElementById('add-modal-container');
         const openAddCarBtn = document.getElementById('open-add-car-modal-btn');
@@ -520,21 +505,17 @@
         const addFeaturesGrid = document.getElementById('add-features-grid');
         const addModalTitle = document.getElementById('add-modal-title');
         const addCarSubmitBtn = document.getElementById('add-car-submit-btn');
-        // Delete Confirm Modal
         const deleteConfirmModal = document.getElementById('delete-confirm-modal');
         const deleteModalContainer = document.getElementById('delete-modal-container');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        // Filters
         const filterPowertrain = document.getElementById('filter-powertrain');
         const filterPrice = document.getElementById('filter-price');
         const filterFeatureCheckboxes = document.querySelectorAll('.feature-filter');
         const sortableHeaders = document.querySelectorAll('.sortable');
-        // Auto-fill
         const findCarInfoBtn = document.getElementById('find-car-info-btn');
         const findCarSpinner = document.getElementById('find-car-spinner');
         const findCarError = document.getElementById('find-car-error');
-        // Image Drop Zone
         const imageDropZone = document.getElementById('image-drop-zone');
         const imagePreview = document.getElementById('image-preview');
         const dropZoneText = document.getElementById('drop-zone-text');
@@ -569,10 +550,7 @@
         }
         
         function populateModal(car) {
-            state.currentCarId = car.id; // 3. Store current car ID
-            
-            // 1. Reset review summary section (Removed)
-
+            state.currentCarId = car.id; 
             document.getElementById('modal-title').textContent = `${car.make} ${car.model}`;
             document.getElementById('modal-image').src = car.imageUrl;
             document.getElementById('modal-image').alt = `${car.make} ${car.model}`;
@@ -622,12 +600,10 @@
             if (newIndex < 0) newIndex = state.cars.length - 1;
             if (newIndex >= state.cars.length) newIndex = 0;
             
-            // Find the ID from the *filtered* list
             const newCarId = state.cars[newIndex].id;
-            // Find the actual car object from the *global* list to populate
             const car = carData.find(c => c.id === newCarId);
             if (car) {
-                state.currentCarIndex = newIndex; // Update index relative to filtered list
+                state.currentCarIndex = newIndex; 
                 populateModal(car);
             }
         }
@@ -638,10 +614,9 @@
             addCarForm.reset();
             addModalTitle.textContent = "Add a New Car";
             addCarSubmitBtn.textContent = "Save Car";
-            addCarForm.dataset.editingId = ""; // Clear editing ID
+            addCarForm.dataset.editingId = ""; 
             findCarError.classList.add('hidden');
 
-            // Reset image drop zone
             imagePreview.src = '';
             imagePreview.classList.add('hidden');
             dropZoneText.classList.remove('hidden');
@@ -654,15 +629,13 @@
             }, 10);
         }
         
-        // 3. Open modal for editing
         function openEditCarModal(car) {
             addCarForm.reset();
             addModalTitle.textContent = `Edit ${car.make} ${car.model}`;
             addCarSubmitBtn.textContent = "Update Car";
-            addCarForm.dataset.editingId = car.id; // Set editing ID
+            addCarForm.dataset.editingId = car.id; 
             findCarError.classList.add('hidden');
 
-            // Populate form
             document.getElementById('add-make').value = car.make;
             document.getElementById('add-model').value = car.model;
             document.getElementById('add-powertrain').value = car.powertrain;
@@ -673,9 +646,8 @@
             document.getElementById('add-imageUrl').value = car.imageUrl;
             document.getElementById('add-note').value = car.note;
 
-            // Populate image drop zone preview
             if (car.imageUrl) {
-                imagePreview.src = car.imageUrl; // This works for both http and data: URLs
+                imagePreview.src = car.imageUrl; 
                 imagePreview.classList.remove('hidden');
                 dropZoneText.classList.add('hidden');
             } else {
@@ -685,7 +657,6 @@
             }
             imageDropZone.classList.remove('drop-zone-active');
 
-            // Populate features
             featureDefinitions.forEach(feature => {
                 const status = car.features[feature.id];
                 const select = document.getElementById(`add-${feature.id}`);
@@ -733,23 +704,22 @@
             });
         }
 
-        // 3. Modified submit handler for edit/add
         function handleAddCarSubmit(e) {
             e.preventDefault();
             const editingId = addCarForm.dataset.editingId ? parseInt(addCarForm.dataset.editingId, 10) : null;
-            const make = document.getElementById('add-make').value; // Get make
-            const imageUrlValue = document.getElementById('add-imageUrl').value; // Get URL
+            const make = document.getElementById('add-make').value; 
+            const imageUrlValue = document.getElementById('add-imageUrl').value; 
             
             const carDataObj = {
                 id: editingId || Date.now(),
-                make: make, // Use variable
+                make: make, 
                 model: document.getElementById('add-model').value,
                 powertrain: document.getElementById('add-powertrain').value,
                 price: parseInt(document.getElementById('add-price').value, 10) || 0,
                 lease: parseInt(document.getElementById('add-lease').value, 10) || null,
                 range: parseInt(document.getElementById('add-range').value, 10) || null,
                 link: document.getElementById('add-link').value || '#',
-                imageUrl: imageUrlValue || `https://placehold.co/600x400/9ca3af/E2E8F0?text=${make}`, // Use variable
+                imageUrl: imageUrlValue || `https://placehold.co/600x400/9ca3af/E2E8F0?text=${make}`, 
                 note: document.getElementById('add-note').value || '',
                 features: {}
             };
@@ -770,13 +740,11 @@
             });
             
             if (editingId) {
-                // Update existing car
                 const carIndex = carData.findIndex(c => c.id === editingId);
                 if (carIndex > -1) {
                     carData[carIndex] = carDataObj;
                 }
             } else {
-                // Add new car
                 carData.push(carDataObj);
             }
 
@@ -811,7 +779,6 @@
                 applyFiltersAndSort();
             }
         }
-
 
         // --- TABLE & FILTER FUNCTIONS ---
 
@@ -872,7 +839,6 @@
                     <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.driverDisplay)}</td>
                     <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.hud)}</td>
                     <td class="px-4 py-3 text-center">${renderFeatureIcon(car.features.sunroof)}</td>
-                    <!-- 2. Updated Link Icon -->
                     <td class="px-4 py-3 text-center">
                         <a href="${car.link}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-gray-600" onclick="(e) => e.stopPropagation()">
                             <i class="ph-duotone ph-arrow-square-out text-2xl"></i>
@@ -905,10 +871,10 @@
                 if (!feature) return 1;
                 if (feature.available === true) return 3;
                 if (feature.available === 'trim') return 2;
-                return 1; // false or undefined
+                return 1; 
             }
             if (sortKey === 'price' || sortKey === 'range') {
-                return car[sortKey] || 0; // Treat null/undefined as 0 for sorting
+                return car[sortKey] || 0; 
             }
             return car[sortKey];
         }
@@ -927,7 +893,7 @@
                 filteredCars = filteredCars.filter(car => {
                     return state.filters.features.every(featureKey => {
                         const feature = car.features[featureKey];
-                        return feature && feature.available; // 'true' or 'trim'
+                        return feature && feature.available; 
                     });
                 });
             }
@@ -943,7 +909,7 @@
                 return 0;
             });
 
-            state.cars = filteredCars; // Update the filtered list
+            state.cars = filteredCars; 
             renderTable();
             updateSortIcons();
         }
@@ -954,7 +920,7 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const dataUrl = e.target.result;
-                    addImageUrlInput.value = dataUrl; // Set the input value to the Base64 string
+                    addImageUrlInput.value = dataUrl; 
                     imagePreview.src = dataUrl;
                     imagePreview.classList.remove('hidden');
                     dropZoneText.classList.add('hidden');
@@ -963,51 +929,7 @@
             }
         }
 
-        // --- 4. GEMINI API FUNCTIONS ---
-
-        // 2. This schema is now just for reference, not for the API call
-        const carApiSchema = {
-            type: "OBJECT",
-            properties: {
-                price: { type: "NUMBER", description: "The starting price in Euros. e.g., 39995" },
-                range: { type: "NUMBER", description: "The WLTP range in kilometers. e.g., 460. Null if N/A." },
-                link: { type: "STRING", description: "The official manufacturer URL for the car in the Netherlands." },
-                features: {
-                    type: "OBJECT",
-                    properties: {
-                        physicalAC: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } },
-                        wirelessCarPlay: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } },
-                        wirelessCharging: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } },
-                        driverDisplay: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } },
-                        hud: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } },
-                        sunroof: { type: "OBJECT", properties: { available: { "type": "STRING", "enum": ["true", "false", "trim"] }, note: { type: "STRING" } } }
-                    },
-                    "propertyOrdering": ["physicalAC", "wirelessCarPlay", "wirelessCharging", "driverDisplay", "hud", "sunroof"]
-                }
-            },
-            "propertyOrdering": ["price", "range", "link", "features"]
-        };
-
-        async function fetchWithBackoff(apiUrl, payload, retries = 3, delay = 1000) {
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return await response.json();
-            } catch (error) {
-                if (retries > 0) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return fetchWithBackoff(apiUrl, payload, retries - 1, delay * 2);
-                } else {
-                    console.error("API call failed after retries:", error);
-                    throw error;
-                }
-            }
-        }
-
+        // --- MODIFIED API FUNCTION ---
         async function handleFindCarInfo() {
             const make = document.getElementById('add-make').value;
             const model = document.getElementById('add-model').value;
@@ -1022,46 +944,22 @@
             findCarError.classList.add('hidden');
 
             const userQuery = `Find the specifications for the car: ${make} ${model} for the Netherlands market. Get the starting price in Euros, WLTP range in km (if electric), and the availability of these specific features: Physical A/C controls, Wireless Apple CarPlay, Wireless Phone Charging, a separate Driver Display, Heads-Up Display (HUD), and Sunroof. For each feature, state if it's standard ('true'), not available ('false'), or available on a higher trim ('trim') and add a brief note.`;
-            
-            // 2. Updated System Prompt to request JSON as text
-            const systemPrompt = `You are an automotive data assistant. The user will provide a car make and model. Find the most accurate, up-to-date information for the Netherlands market using Google Search. 
-Return *only* a valid JSON object matching this exact structure:
-{
-  "price": 12345,
-  "range": 450,
-  "link": "https://www.example.nl",
-  "features": {
-    "physicalAC": { "available": "true"|"false"|"trim", "note": "Standard" },
-    "wirelessCarPlay": { "available": "true"|"false"|"trim", "note": "On Comfort trim" },
-    "wirelessCharging": { "available": "true"|"false"|"trim", "note": "Not available" },
-    "driverDisplay": { "available": "true"|"false"|"trim", "note": "Standard" },
-    "hud": { "available": "true"|"false"|"trim", "note": "Premium pack" },
-    "sunroof": { "available": "true"|"false"|"trim", "note": "Premium pack" }
-  }
-}
-Do not include \`\`\`json markdown wrappers or any other text before or after the JSON object.`;
-
-            const apiKey = "AIzaSyCv9n6oeBLENDut7XmZcAbQbHrBIECzxkw"; // API key is handled by the environment
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-            // 2. Updated Payload: Removed generationConfig and responseSchema
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                }
-            };
 
             try {
-                const result = await fetchWithBackoff(apiUrl, payload);
-                let jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (!jsonText) throw new Error("No valid content returned from API.");
+                // --- THIS IS THE KEY CHANGE ---
+                // Instead of calling Google, we call our OWN function
+                const response = await fetch('/.netlify/functions/gemini-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userQuery: userQuery }) // Send the query to our function
+                });
 
-                // 2. Clean the response text in case it includes markdown
-                jsonText = jsonText.replace(/^```json\s*/, '').replace(/```$/, '').trim();
-
-                const carInfo = JSON.parse(jsonText);
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(`Proxy server error: ${err.error || response.statusText}`);
+                }
+                
+                const carInfo = await response.json(); // Get the JSON back from our function
                 
                 // Populate the form with the found data
                 document.getElementById('add-price').value = carInfo.price || '';
@@ -1073,7 +971,6 @@ Do not include \`\`\`json markdown wrappers or any other text before or after th
                         const select = document.getElementById(`add-${featureId}`);
                         const noteInput = document.getElementById(`add-note-${featureId}`);
                         if (select && noteInput) {
-                            // API returns strings 'true', 'false', 'trim'
                             select.value = String(status.available);
                             noteInput.value = status.note || '';
                         }
@@ -1090,9 +987,6 @@ Do not include \`\`\`json markdown wrappers or any other text before or after th
             }
         }
 
-        /**
-         * 1. Removed handleSummarizeReviews function
-         */
 
         // --- EVENT LISTENERS ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -1148,7 +1042,6 @@ Do not include \`\`\`json markdown wrappers or any other text before or after th
             prevCarBtn.addEventListener('click', () => showNextPrevCar(-1));
             nextCarBtn.addEventListener('click', () => showNextPrevCar(1));
             
-            // 3. Edit/Delete listeners
             modalEditBtn.addEventListener('click', () => {
                 const car = carData.find(c => c.id === state.currentCarId);
                 if (car) {
@@ -1158,15 +1051,12 @@ Do not include \`\`\`json markdown wrappers or any other text before or after th
             });
             modalDeleteBtn.addEventListener('click', openDeleteConfirmModal);
 
-            // 1. Remove listener for Review Summary
-
             // Add Car Modal Listeners
             openAddCarBtn.addEventListener('click', openAddCarModal);
             closeAddCarBtn.addEventListener('click', closeAddCarModal);
             cancelAddCarBtn.addEventListener('click', closeAddCarModal);
             addCarForm.addEventListener('submit', handleAddCarSubmit);
 
-            // 4. Auto-fill listener
             findCarInfoBtn.addEventListener('click', handleFindCarInfo);
 
             // Image Drop Zone Listeners
@@ -1193,10 +1083,9 @@ Do not include \`\`\`json markdown wrappers or any other text before or after th
                     handleImageFile(e.dataTransfer.files[0]);
                 }
             });
-            // Listen for pastes on the URL input field
             addImageUrlInput.addEventListener('paste', (e) => {
                 if (e.clipboardData.files.length > 0) {
-                    e.preventDefault(); // Prevent pasting file path text
+                    e.preventDefault(); 
                     handleImageFile(e.clipboardData.files[0]);
                 }
             });
